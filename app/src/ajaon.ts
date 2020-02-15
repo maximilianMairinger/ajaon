@@ -70,7 +70,7 @@ const endsWithSlash = endsWith("/")
 
 const constructConsoleWarnVerbose = constructConsoleType("warn")
 
-type GenericObject = {[key: string]: any} | {[key: number]: any}
+type GenericObject = {[key: string]: any} & {[key: number]: any}
 type SessKeyKey = {sessKeyKeyForLocalStorage: string, sessKeyKeyForApi: string}
 
 export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey = "sessKey", verbose: boolean = true) {
