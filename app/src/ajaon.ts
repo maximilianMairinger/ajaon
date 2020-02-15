@@ -35,14 +35,14 @@ function constructConsoleType(type: "warn" | "error" | "log" | ((msg: string) =>
   if (typeof type === "string") return function constructConsoleVerbose(verbose: boolean, alwaysExecute: (msg: string) => void = defaultAlwaysExecute) {
     return function(msg: string) {
       msg += setVerboseFalseNote
-      alwaysExecute(msg)
+      if (alwaysExecute !== undefined) alwaysExecute(msg)
       if (verbose) console[type](msg)
     }
   }
   else return function constructConsoleVerbose(verbose: boolean, alwaysExecute: (msg: string) => void = defaultAlwaysExecute) {
-    return function(msg: string, alwaysExecute?: (msg: string) => void) {
+    return function(msg: string) {
       msg += setVerboseFalseNote
-      alwaysExecute(msg)
+      if (alwaysExecute !== undefined) alwaysExecute(msg)
       if (verbose) type(msg + setVerboseFalseNote)
     }
   }
