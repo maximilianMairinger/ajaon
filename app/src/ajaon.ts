@@ -28,6 +28,7 @@ export class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
 
 const dir = "/"
 const setVerboseFalseNote = "\n\nIf this behaviour is intended and youd like to disable this warning, set verbose to false."
+const postString = "POST"
 
 function constructConsoleType(type: "warn" | "error" | "log" | ((msg: string) => void)) {
   if (typeof type === "string") return function constructConsoleVerbose(verbose: boolean) {
@@ -87,8 +88,11 @@ export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey = 
   }
 
   const sess: SessKeyKey = typeof sessKeyKey === "string" ? {sessKeyKeyForLocalStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey)
-  function post<Res = GenericObject>(url: string | string[], body: object | string, headers?: HeadersInit, verbose: boolean = defaultVervose) {
+  function post<Res = GenericObject>(url: string | string[], body: object | string, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, verbose: boolean = defaultVervose) {
     return new AjaonPromise<Res, string>(async (res, fail) => {
+      headers = headers instanceof Headers ? headers : new Headers(headers)
+
+
       const error = constructConsoleType((r) => {fail(r); console.error(r)})(verbose)
       if (verbose !== defaultVervose) warn = constructConsoleWarnVerbose(verbose)
       
@@ -98,11 +102,14 @@ export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey = 
         warn("Session key property \"" + sess.sessKeyKeyForApi + "\" in post body defined as \"" + body[sess.sessKeyKeyForApi] + "\". The sesskey (saved as \"" + sess.sessKeyKeyForLocalStorage + "\" in localStorage) will not be ijected into the payload.");
       }
       else body[sess.sessKeyKeyForApi] = localStorage[sess.sessKeyKeyForLocalStorage] || "";
+
+      body = JSON.stringify(body)
+
       try {
         res(await (await fetch(validateURL(url), {
-          headers: new Headers(headers),
-          method: "POST",
-          body: JSON.stringify(body)
+          headers: headers,
+          method: postString,
+          body: body
         })).json())
       } catch (e) {
         if (apiUrlHasNOTBeenWith !== false) {
@@ -111,9 +118,9 @@ export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey = 
           else if (apiUrlHasNOTBeenWith === "https://") apiUrlHasNOTBeenWith = "http://"
           try {
             res(await (await fetch(validateURL(url), {
-              headers: new Headers(headers),
-              method: "POST",
-              body: JSON.stringify(body)
+              headers: headers,
+              method: postString,
+              body: body
             })).json())
           }
           catch (e) {
