@@ -3,21 +3,27 @@ import clone from "tiny-clone"
 
 
 export class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
+  private hasFailed: boolean
+  private failiourMsg: Error
+  private failCbs: ((err: Error) => void)[]
+
   constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => void) {
-    super((res) => {
-      f(res, (msg: Error) => {
-        this.hasFailed = true
-        this.failiourMsg = msg
-        this.failCbs.forEach((cb) => {
-          cb(msg)
-        })
+    let res
+    super((r) => {
+      res = r
+    })
+    this.failCbs = []
+    this.hasFailed = false
+
+    f(res, (msg: Error) => {
+      this.hasFailed = true
+      this.failiourMsg = msg
+      this.failCbs.forEach((cb) => {
+        cb(msg)
       })
     })
   }
 
-  private hasFailed: boolean = false
-  private failiourMsg: Error
-  private failCbs: ((err: Error) => void)[] = []
   fail(f: (err: Error) => void) {
     if (this.hasFailed) f(this.failiourMsg)
     else this.failCbs.push(f)
