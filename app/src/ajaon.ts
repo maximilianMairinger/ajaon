@@ -49,7 +49,7 @@ function constructConsoleType(type: "warn" | "error" | "log" | ((msg: string) =>
     return function(msg: string) {
       msg += setVerboseFalseNote
       if (alwaysExecute !== undefined) alwaysExecute(msg)
-      if (verbose) type(msg + setVerboseFalseNote)
+      if (verbose) type(msg)
     }
   }
 }
