@@ -48,15 +48,17 @@ type GenericObject = {[key: string]: any} | {[key: number]: any}
 type SessKeyKey = {sessKeyKeyForLocalStorage: string, sessKeyKeyForApi: string}
 
 export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey = "sessKey", verbose: boolean = true) {
-  const warn = constructConsoleWarnVerbose(verbose)
-  
+  const defaultVervose = verbose
+  let warn = constructConsoleWarnVerbose(verbose)
 
   if (apiUrl.charAt(apiUrl.length-1) !== "/") apiUrl += "/"
 
   const sess: SessKeyKey = typeof sessKeyKey === "string" ? {sessKeyKeyForLocalStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey)
-  function post<Res = GenericObject>(url: string | string[], body: object | string, headers?: HeadersInit) {
+  function post<Res = GenericObject>(url: string | string[], body: object | string, headers?: HeadersInit, verbose: boolean = defaultVervose) {
     return new AjaonPromise<Res, string>(async (res, fail) => {
       const error = constructConsoleType((r) => {fail(r); console.error(r)})(verbose)
+      if (verbose !== defaultVervose) warn = constructConsoleWarnVerbose(verbose)
+      
 
       body = typeof body === "string" ? JSON.parse(body) : body
       if (body[sess.sessKeyKeyForApi] !== undefined) {
