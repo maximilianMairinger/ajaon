@@ -42,6 +42,32 @@ function constructConsoleType(type: "warn" | "error" | "log" | ((msg: string) =>
   }
 }
 
+function startsWith(expected: string | string[]) {
+  if (expected instanceof Array) return function(testString: string) {
+    for (let i = 0; i < expected.length; i++) {
+      if (testString.substr(0, expected[i].length) === expected[i]) return true
+    }
+    return false
+  }
+  else return function(testString: string) {
+    return testString.substr(0, expected.length) === expected
+  }
+}
+const startsWithHTTPS = startsWith(["http://", "https://"])
+
+function endsWith(expected: string[] | string) {
+  if (expected instanceof Array) return function(testString: string) {
+    for (let i = 0; i < expected.length; i++) {
+      if (testString.substr(testString.length - expected[i].length) === expected[i]) return true
+    }
+    return false
+  }
+  else return function(testString: string) {
+    return testString.substr(testString.length - expected.length) === expected
+  }
+}
+const endsWithSlash = endsWith("/")
+
 const constructConsoleWarnVerbose = constructConsoleType("warn")
 
 type GenericObject = {[key: string]: any} | {[key: number]: any}
@@ -51,7 +77,8 @@ export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey = 
   const defaultVervose = verbose
   let warn = constructConsoleWarnVerbose(verbose)
 
-  if (apiUrl.charAt(apiUrl.length-1) !== "/") apiUrl += "/"
+  if (!endsWithSlash(apiUrl)) apiUrl += "/"
+  if (!startsWithHTTPS(apiUrl)) apiUrl = "https://" + apiUrl
 
   const sess: SessKeyKey = typeof sessKeyKey === "string" ? {sessKeyKeyForLocalStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey)
   function post<Res = GenericObject>(url: string | string[], body: object | string, headers?: HeadersInit, verbose: boolean = defaultVervose) {
