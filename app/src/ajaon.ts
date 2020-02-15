@@ -78,7 +78,13 @@ export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey = 
   let warn = constructConsoleWarnVerbose(verbose)
 
   if (!endsWithSlash(apiUrl)) apiUrl += "/"
-  if (!startsWithHTTPS(apiUrl)) apiUrl = "https://" + apiUrl
+
+  let apiUrlHasNOTBeenWith: boolean | "http://" | "https://" = false
+  const apiUrlWithoutHTTPSPrefix = apiUrl
+  if (!startsWithHTTPS(apiUrl)) {
+    apiUrlHasNOTBeenWith = "http://"
+    apiUrl = "https://" + apiUrl
+  }
 
   const sess: SessKeyKey = typeof sessKeyKey === "string" ? {sessKeyKeyForLocalStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey)
   function post<Res = GenericObject>(url: string | string[], body: object | string, headers?: HeadersInit, verbose: boolean = defaultVervose) {
@@ -99,7 +105,22 @@ export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey = 
           body: JSON.stringify(body)
         })).json())
       } catch (e) {
-        error("POST request failed at \"" + validateURL(url) + "\".");
+        if (apiUrlHasNOTBeenWith !== false) {
+          apiUrl = apiUrlHasNOTBeenWith + apiUrlWithoutHTTPSPrefix
+          if      (apiUrlHasNOTBeenWith === "http://") apiUrlHasNOTBeenWith = "https://"
+          else if (apiUrlHasNOTBeenWith === "https://") apiUrlHasNOTBeenWith = "http://"
+          try {
+            res(await (await fetch(validateURL(url), {
+              headers: new Headers(headers),
+              method: "POST",
+              body: JSON.stringify(body)
+            })).json())
+          }
+          catch (e) {
+            error("POST request failed at \"" + validateURL(url) + "\".");
+          }
+        }
+        
       }
     })
   }
