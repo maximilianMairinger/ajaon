@@ -2,7 +2,7 @@ import clone from "tiny-clone"
 
 
 
-class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
+export class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
   constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => void) {
     super((res) => {
       f(res, (msg: Error) => {
@@ -47,7 +47,7 @@ const constructConsoleWarnVerbose = constructConsoleType("warn")
 type GenericObject = {[key: string]: any} | {[key: number]: any}
 type SessKeyKey = {sessKeyKeyForLocalStorage: string, sessKeyKeyForApi: string}
 
-export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey, verbose: boolean = true) {
+export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey = "sessKey", verbose: boolean = true) {
   const warn = constructConsoleWarnVerbose(verbose)
   
 
