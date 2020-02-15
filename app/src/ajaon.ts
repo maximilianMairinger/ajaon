@@ -117,8 +117,19 @@ export default function ajaon(apiUrl: string, sessKeyKey: string | SessKeyKey = 
             })).json())
           }
           catch (e) {
-            error("POST request failed at \"" + validateURL(url) + "\".");
+            let apiUrlSave = apiUrl
+            apiUrl = apiUrlHasNOTBeenWith + apiUrlWithoutHTTPSPrefix
+            let urlA = validateURL(url)
+            apiUrl = apiUrlSave
+            let urlB = validateURL(url)
+            
+
+
+            error("POST request failed at " + urlA + " and " + urlB + ".")
           }
+        }
+        else {
+          error("POST request failed at " + validateURL(url) + ".")
         }
         
       }
