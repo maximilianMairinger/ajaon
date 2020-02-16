@@ -185,6 +185,3 @@ export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, 
   return {post, get}
 
 }
-
-
-// TODO: is currently online. if offline for longer dont spam, not connected event
