@@ -32,7 +32,6 @@ export class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
 }
 
 
-const dir = "/"
 const setVerboseFalseNote = "\n\nIf this behaviour is intended and youd like to disable this warning, set verbose to false."
 const postString = "POST"
 
@@ -78,12 +77,14 @@ function endsWith(expected: string[] | string) {
     return testString.substr(testString.length - expected.length) === expected
   }
 }
-const endsWithSlash = endsWith("/")
+const endsWithSlash = endsWith(["/", "\\"])
 
 const constructConsoleWarnVerbose = constructConsoleType("warn")
 
 type GenericObject = {[key: string]: any} & {[key: number]: any}
 type SessKeyKey = {sessKeyKeyForStorage: string, sessKeyKeyForApi: string}
+
+const commonLoginApiCalls = ["login", "auth", "session"]
 
 
 
@@ -108,19 +109,31 @@ export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, 
 
       const error = constructConsoleType(console.error, fail)(verbose)
       if (verbose !== defaultVervose) warn = constructConsoleWarnVerbose(verbose)
-      
+      const assembledUrl = assembleUrl(url)
 
       body = typeof body === "string" ? JSON.parse(body) : body
       if (sess) {
         if (body[sess.sessKeyKeyForApi] !== undefined) warn("Session key property \"" + sess.sessKeyKeyForApi + "\" in post body defined as \"" + body[sess.sessKeyKeyForApi] + "\". The sesskey (saved as \"" + sess.sessKeyKeyForStorage + "\" in storage) will not be ijected into the payload.");
         else if (storage[sess.sessKeyKeyForStorage] !== undefined) body[sess.sessKeyKeyForApi] = storage[sess.sessKeyKeyForStorage]
-        else error("No sessionKey found on the client under " + sess.sessKeyKeyForStorage + ".")
+        else {
+          let isCommon = false
+          const lowerCaseUrl = assembledUrl.toLocaleLowerCase()
+          for (let i = 0; i < commonLoginApiCalls.length; i++) {
+            if (lowerCaseUrl.includes(commonLoginApiCalls[i])) {
+              isCommon = true
+            }
+          }
+
+          if (!isCommon) {
+            error("No sessionKey found on the client under " + sess.sessKeyKeyForStorage + ".")
+          }
+        }
       }
 
       body = JSON.stringify(body)
 
       try {
-        res(await (await fetch(validateURL(url), {
+        res(await (await fetch(assembledUrl, {
           headers: headers,
           method: postString,
           body: body
@@ -131,7 +144,7 @@ export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, 
           if      (apiUrlHasNOTBeenWith === "http://") apiUrlHasNOTBeenWith = "https://"
           else if (apiUrlHasNOTBeenWith === "https://") apiUrlHasNOTBeenWith = "http://"
           try {
-            res(await (await fetch(validateURL(url), {
+            res(await (await fetch(assembleUrl(url), {
               headers: headers,
               method: postString,
               body: body
@@ -140,9 +153,9 @@ export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, 
           catch (e) {
             let apiUrlSave = apiUrl
             apiUrl = apiUrlHasNOTBeenWith + apiUrlWithoutHTTPSPrefix
-            let urlA = validateURL(url)
+            let urlA = assembleUrl(url)
             apiUrl = apiUrlSave
-            let urlB = validateURL(url)
+            let urlB = assembleUrl(url)
             
 
 
@@ -150,7 +163,7 @@ export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, 
           }
         }
         else {
-          error("POST request failed at " + validateURL(url) + ".")
+          error("POST request failed at " + assembleUrl(url) + ".")
         }
         
       }
@@ -162,25 +175,27 @@ export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, 
   async function get<Res>(...url: string[]) {
     return new AjaonPromise<Res, string>(async (res, fail) => {
       try {
-        res(await (await fetch(validateURL(url))).json())
+        res(await (await fetch(assembleUrl(url))).json())
       }
       catch(e) {
-        constructConsoleType(console.error, fail)(verbose)("GET request failed at \"" + validateURL(url) + "\".");
+        constructConsoleType(console.error, fail)(verbose)("GET request failed at \"" + assembleUrl(url) + "\".");
       }
     })
   }
 
-  function validateURL(url: string[] | string) {
+  function assembleUrl(url: string[] | string) {
     url = (url instanceof Array) ? url : [url];
-    let fullUrl = "";
+
+    let fullUrl = ""
     url.forEach((urlPart) => {
-      if (urlPart.charAt(urlPart.length - 1) === dir) urlPart = urlPart.substring(0, urlPart.length - 1);
-      fullUrl += urlPart;
-    });
-  
-    if (url[0].substring(0, 4) !== "http") fullUrl = apiUrl + fullUrl;
-  
-    return fullUrl;
+      if (endsWithSlash(urlPart)) urlPart = urlPart.substring(0, urlPart.length - 1)
+      fullUrl += urlPart + "/"
+    })
+    fullUrl = fullUrl.substring(0, fullUrl.length - 1);
+
+    if (!startsWithHTTPS(fullUrl)) fullUrl = apiUrl + fullUrl;
+
+    return fullUrl
   }
 
 
