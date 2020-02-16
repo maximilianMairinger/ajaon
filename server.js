@@ -36,7 +36,7 @@ function sendFile(res, p) {
 
 app.use('/dist', express.static('test/dist'))
 
-app.get('/', (req, res) => {
+app.get('*', (req, res) => {
   sendFile(res, "test/index.html")
 });
 

@@ -1,4 +1,5 @@
 import clone from "tiny-clone"
+import getBaseUrl from "get-base-url"
 
 
 
@@ -85,10 +86,9 @@ type GenericObject = {[key: string]: any} & {[key: number]: any}
 type SessKeyKey = {sessKeyKeyForStorage: string, sessKeyKeyForApi: string}
 
 const commonLoginApiCalls = ["login", "auth", "session"]
+const baseUrl = getBaseUrl()
 
-
-
-export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, storage: object = localStorage, verbose: boolean = true) {
+export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | SessKeyKey, storage: object = localStorage, verbose: boolean = true) {
   const defaultVervose = verbose
   let warn = constructConsoleWarnVerbose(verbose)
 
