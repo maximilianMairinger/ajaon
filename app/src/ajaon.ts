@@ -83,9 +83,11 @@ const endsWithSlash = endsWith("/")
 const constructConsoleWarnVerbose = constructConsoleType("warn")
 
 type GenericObject = {[key: string]: any} & {[key: number]: any}
-type SessKeyKey = {sessKeyKeyForLocalStorage: string, sessKeyKeyForApi: string}
+type SessKeyKey = {sessKeyKeyForStorage: string, sessKeyKeyForApi: string}
 
-export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, verbose: boolean = true) {
+
+
+export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, storage: object = localStorage, verbose: boolean = true) {
   const defaultVervose = verbose
   let warn = constructConsoleWarnVerbose(verbose)
 
@@ -98,7 +100,7 @@ export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, 
     apiUrl = "https://" + apiUrl
   }
 
-  const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForLocalStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false
+  const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false
   function post<Res = GenericObject>(url: string | string[], body: object | string, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, verbose: boolean = defaultVervose) {
     return new AjaonPromise<Res, string>(async (res, fail) => {
       headers = headers instanceof Headers ? headers : new Headers(headers)
@@ -110,9 +112,9 @@ export default function ajaon(apiUrl: string, sessKeyKey?: string | SessKeyKey, 
 
       body = typeof body === "string" ? JSON.parse(body) : body
       if (sess) {
-        if (body[sess.sessKeyKeyForApi] !== undefined) warn("Session key property \"" + sess.sessKeyKeyForApi + "\" in post body defined as \"" + body[sess.sessKeyKeyForApi] + "\". The sesskey (saved as \"" + sess.sessKeyKeyForLocalStorage + "\" in localStorage) will not be ijected into the payload.");
-        else if (localStorage[sess.sessKeyKeyForLocalStorage] !== undefined) body[sess.sessKeyKeyForApi] = localStorage[sess.sessKeyKeyForLocalStorage]
-        else error("No sessionKey found on the client under " + sess.sessKeyKeyForLocalStorage + ".")
+        if (body[sess.sessKeyKeyForApi] !== undefined) warn("Session key property \"" + sess.sessKeyKeyForApi + "\" in post body defined as \"" + body[sess.sessKeyKeyForApi] + "\". The sesskey (saved as \"" + sess.sessKeyKeyForStorage + "\" in storage) will not be ijected into the payload.");
+        else if (storage[sess.sessKeyKeyForStorage] !== undefined) body[sess.sessKeyKeyForApi] = storage[sess.sessKeyKeyForStorage]
+        else error("No sessionKey found on the client under " + sess.sessKeyKeyForStorage + ".")
       }
 
       body = JSON.stringify(body)
