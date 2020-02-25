@@ -105,7 +105,7 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
   }
 
   const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false
-  function post<Res = GenericObject>(url: string | string[], body: object | string, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, verbose: boolean = defaultVervose) {
+  function post<Res = GenericObject>(url: string | string[], body: object | string = {}, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, verbose: boolean = defaultVervose) {
     return new AjaonPromise<Res, string>((res, fail) => {
       headers = headers instanceof Headers ? headers : new Headers(headers)
 
