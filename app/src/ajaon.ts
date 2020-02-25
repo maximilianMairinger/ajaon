@@ -1,5 +1,6 @@
 import clone from "tiny-clone"
 import getBaseUrl from "get-base-url"
+import delay from "delay"
 
 
 
@@ -8,15 +9,17 @@ export class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
   private failiourMsg: Error
   private failCbs: ((err: Error) => void)[]
 
-  constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => void) {
-    let res
+  public abort: () => void
+
+  constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => (() => void)) {
+    let res: (res: Res) => void
     super((r) => {
       res = r
     })
     this.failCbs = []
     this.hasFailed = false
 
-    f(res, (msg: Error) => {
+    this.abort = f(res, (msg: Error) => {
       this.hasFailed = true
       this.failiourMsg = msg
       this.failCbs.forEach((cb) => {
@@ -103,7 +106,7 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
 
   const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false
   function post<Res = GenericObject>(url: string | string[], body: object | string, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, verbose: boolean = defaultVervose) {
-    return new AjaonPromise<Res, string>(async (res, fail) => {
+    return new AjaonPromise<Res, string>((res, fail) => {
       headers = headers instanceof Headers ? headers : new Headers(headers)
 
 
@@ -130,56 +133,75 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
         }
       }
 
-      body = JSON.stringify(body)
+      body = JSON.stringify(body);
 
-      try {
-        res(await (await fetch(assembledUrl, {
-          headers: headers,
-          method: postString,
-          body: body
-        })).json())
-      } catch (e) {
-        if (apiUrlHasNOTBeenWith !== false) {
-          apiUrl = apiUrlHasNOTBeenWith + apiUrlWithoutHTTPSPrefix
-          if      (apiUrlHasNOTBeenWith === "http://") apiUrlHasNOTBeenWith = "https://"
-          else if (apiUrlHasNOTBeenWith === "https://") apiUrlHasNOTBeenWith = "http://"
-          try {
-            res(await (await fetch(assembleUrl(url), {
-              headers: headers,
-              method: postString,
-              body: body
-            })).json())
-          }
-          catch (e) {
-            let apiUrlSave = apiUrl
-            apiUrl = apiUrlHasNOTBeenWith + apiUrlWithoutHTTPSPrefix
-            let urlA = assembleUrl(url)
-            apiUrl = apiUrlSave
-            let urlB = assembleUrl(url)
-            
+      let controller = new AbortController();
+      let signal = controller.signal;
 
-
-            error("POST request failed at " + urlA + " and " + urlB + ".")
+      (async () => {
+        try {
+          res(await (await fetch(assembledUrl, {
+            headers: headers,
+            method: postString,
+            body: body,
+            signal
+          })).json())
+        } catch (e) {
+          if (!signal.aborted) {
+            if (apiUrlHasNOTBeenWith !== false) {
+              apiUrl = apiUrlHasNOTBeenWith + apiUrlWithoutHTTPSPrefix
+              if      (apiUrlHasNOTBeenWith === "http://") apiUrlHasNOTBeenWith = "https://"
+              else if (apiUrlHasNOTBeenWith === "https://") apiUrlHasNOTBeenWith = "http://"
+              try {
+                res(await (await fetch(assembleUrl(url), {
+                  headers: headers,
+                  method: postString,
+                  body: body,
+                  signal
+                })).json())
+              }
+              catch (e) {
+                let apiUrlSave = apiUrl
+                apiUrl = apiUrlHasNOTBeenWith + apiUrlWithoutHTTPSPrefix
+                let urlA = assembleUrl(url)
+                apiUrl = apiUrlSave
+                let urlB = assembleUrl(url)
+                
+    
+    
+                error("POST request failed at " + urlA + " and " + urlB + ".")
+              }
+            }
+            else {
+              error("POST request failed at " + assembleUrl(url) + ".")
+            }
           }
         }
-        else {
-          error("POST request failed at " + assembleUrl(url) + ".")
-        }
-        
-      }
+      })()
+
+      return controller.abort.bind(controller)
     })
   }
 
   
 
-  async function get<Res>(...url: string[]) {
-    return new AjaonPromise<Res, string>(async (res, fail) => {
-      try {
-        res(await (await fetch(assembleUrl(url))).json())
-      }
-      catch(e) {
-        constructConsoleType(console.error, fail)(verbose)("GET request failed at \"" + assembleUrl(url) + "\".");
-      }
+  async function get<Res>(url: string | string[], verbose: boolean = defaultVervose) {
+    return new AjaonPromise<Res, string>((res, fail) => {
+      let controller = new AbortController();
+      let signal = controller.signal;
+
+      
+
+      (async () => {
+        try {
+          res(await (await fetch(assembleUrl(url), {signal})).json())
+        }
+        catch(e) {
+          constructConsoleType(console.error, fail)(verbose)("GET request failed at \"" + assembleUrl(url) + "\".");
+        }
+      })()
+      
+      return controller.abort.bind(controller)
     })
   }
 

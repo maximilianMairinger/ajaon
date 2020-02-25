@@ -4,6 +4,13 @@ import ajaon from "./../../app/src/ajaon"
 let ajax = ajaon();
 
 (async () => {
-  console.log(await ajax.post("log", {ok: "ok"}))
+  let req = ajax.post("log", {ok: "ok"})
+
+  setTimeout(() => {
+    console.log("cancel")
+    req.abort()
+  }, 500)
+
+  req.then(console.log)
 })()
 

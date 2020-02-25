@@ -25,8 +25,10 @@ app.post("/createSession", (req, res) => {
 })
 
 app.post('/log', (req, res) => {
-  console.log("log", req.body)
-  res.send('{"ok": "okok"}')
+  setTimeout(() => {
+    res.send('{"ok": "okok"}')
+  }, 1000)
+  
 });
 
 

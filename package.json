@@ -49,6 +49,7 @@
     "webpack-merge": "^4.2.2"
   },
   "dependencies": {
+    "delay": "^4.3.0",
     "get-base-url": "^1.0.1",
     "tiny-clone": "^1.0.0"
   }
