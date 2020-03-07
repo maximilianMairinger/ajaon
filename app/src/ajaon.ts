@@ -9,7 +9,7 @@ export class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
   private failiourMsg: Error
   private failCbs: ((err: Error) => void)[]
 
-  public abort: () => void
+  public abort: (msg?: string) => void
 
   constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => (() => void)) {
     let res: (res: Res) => void
@@ -179,7 +179,11 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
         }
       })()
 
-      return controller.abort.bind(controller)
+      return (msg?: string) => {
+        controller.abort()
+        if (msg) fail("Aborted: " + msg)
+        else fail("Aborted")
+      }
     })
   }
 
@@ -201,7 +205,11 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
         }
       })()
       
-      return controller.abort.bind(controller)
+      return (msg?: string) => {
+        controller.abort()
+        if (msg) fail("Aborted: " + msg)
+        else fail("Aborted")
+      }
     })
   }
 

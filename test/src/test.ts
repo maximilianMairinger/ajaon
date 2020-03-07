@@ -8,8 +8,12 @@ let ajax = ajaon();
 
   setTimeout(() => {
     console.log("cancel")
-    req.abort()
+    req.abort("error message")
   }, 500)
+
+  req.fail((e) => {
+    console.error(e)
+  })
 
   req.then(console.log)
 })()
