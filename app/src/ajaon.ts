@@ -1,29 +1,42 @@
 import clone from "tiny-clone"
 import getBaseUrl from "get-base-url"
-import delay from "delay"
 
+type Error = string
 
+let recalls: Function[] = []
+  window.addEventListener("online", async () => {
+    for (let f of recalls) {
+      await f()
+    }
+    recalls.length = 0
+  })
 
-export class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
-  private hasFailed: boolean
-  private failiourMsg: Error
+export class AjaonPromise<Res = GenericObject> extends Promise<Res> {
+  public readonly hasFailed: boolean
+  public readonly failiourMsg: Error
   private failCbs: ((err: Error) => void)[]
 
-  public abort: (msg?: string) => void
+  public abort: (msg?: Error) => void
 
-  private res: (res: Res) => void
+  private resThis: (res: Res) => void
+  private f: (res: (res: Res) => void, fail: (err: Error) => void) => ((err?: Error) => void)
 
   constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => (() => void)) {
     let res: (res: Res) => void
     super((r) => {
       res = r
     })
-    this.res = res
+    this.f = f
+    this.resThis = res
     this.failCbs = []
     this.hasFailed = false
+    this.defaultLengthOfFailCb = 0
 
-    this.abort = f(this.res, (msg: Error) => {
+
+    this.abort = this.f(this.resThis, (msg: Error) => {
+      //@ts-ignore
       this.hasFailed = true
+      //@ts-ignore
       this.failiourMsg = msg
       this.failCbs.forEach((cb) => {
         cb(msg)
@@ -35,6 +48,61 @@ export class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
     if (this.hasFailed) f(this.failiourMsg)
     else this.failCbs.push(f)
   }
+
+
+  private defaultLengthOfFailCb: number
+ 
+  recall() {
+    let recallAjaonPromise = new AjaonPromise<Res>((recallRes, recallFail) => {
+      if (!navigator.onLine) {
+  
+
+        let hasStarted = false
+        let abort = false
+        let abortFunc: () => void
+        
+        recalls.push(() => {
+          hasStarted = true
+          if (abort) return
+
+
+          return new Promise((rrr) => {
+            abortFunc = this.f((res) => {
+              
+
+              if (this.failCbs.length === this.defaultLengthOfFailCb) this.resThis(res)
+              rrr()
+              recallRes(res)
+            }, recallFail)
+
+            
+
+            
+          })
+          
+        })
+
+        return (msg?: Error) => {
+          if (hasStarted) {
+            abortFunc()
+          }
+          else {
+            abort = true
+            if (msg) recallFail("Aborted: " + msg)
+            else recallFail("Aborted")
+          }
+        }
+
+      }
+      else {
+        return this.f(recallRes, recallFail)
+      }
+      
+    })
+    return recallAjaonPromise
+  }
+
+    
 
 }
 
@@ -107,13 +175,7 @@ const baseUrl = getBaseUrl()
 
 
 export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | SessKeyKey, ensureDelivery: boolean = false, storage: object = localStorage, verbose: boolean = true) {
-  let recalls: Function[] = []
-  window.addEventListener("online", async () => {
-    for (let f of recalls) {
-      await f()
-    }
-    recalls.length = 0
-  })
+  
 
 
   const defaultVervose = verbose
@@ -129,9 +191,9 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
     apiUrl = "https://" + apiUrl
   }
 
-  const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : {sessKeyKeyForStorage: "sessKey", sessKeyKeyForApi: "sessKey"}
+  const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false
   function post<Res = GenericObject>(url: string | string[], body: object | string = {}, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, ensureDelivery: boolean = defualtEnsureDelivery, verbose: boolean = defaultVervose) {
-    let ret = new AjaonPromise<Res, string>((res, fail) => {
+    let ret = new AjaonPromise<Res>((res, fail) => {
       headers = headers instanceof Headers ? headers : new Headers(headers)
 
 
@@ -211,10 +273,15 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
       }
     })
 
-
     if (ensureDelivery) {
       delete body[sess.sessKeyKeyForApi]
-      recall(ret, post, arguments)
+      //@ts-ignore
+      ret.defaultLengthOfFailCb++
+      ret.fail(() => {
+        if (!navigator.onLine) {
+          ret.recall()
+        }
+      })
     }
 
 
@@ -223,8 +290,8 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
 
   
 
-  function get<Res>(url: string | string[], ensureDelivery: boolean = defualtEnsureDelivery, verbose: boolean = defaultVervose): AjaonPromise<Res, string> {
-    let ret = new AjaonPromise<Res, string>((res, fail) => {
+  function get<Res = GenericObject>(url: string | string[], ensureDelivery: boolean = defualtEnsureDelivery, verbose: boolean = defaultVervose) {
+    let ret = new AjaonPromise<Res>((res, fail) => {
       let controller = new AbortController();
       let signal = controller.signal;
 
@@ -247,21 +314,16 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
     })
 
     if (ensureDelivery) {
-      recall(ret, get, arguments)
+      //@ts-ignore
+      ret.defaultLengthOfFailCb++
+      ret.fail(() => {
+        if (!navigator.onLine) {
+          ret.recall()
+        }
+      })
     }
 
     return ret
-  }
-
-  function recall(ret: AjaonPromise, func: (...a: any[]) => AjaonPromise, args: IArguments) {
-    ret.fail(() => {
-      if (!navigator.onLine) {
-        recalls.push(() => {
-          let req = func(...args)
-          if ((ret as any).failCbs.length === 1) req.then((ret as any).res)
-        })
-      }
-    })
   }
 
   function assembleUrl(url: string[] | string) {
