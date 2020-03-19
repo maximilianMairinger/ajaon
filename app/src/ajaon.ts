@@ -14,9 +14,11 @@ export class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
   private res: (res: Res) => void
 
   constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => (() => void)) {
+    let res: (res: Res) => void
     super((r) => {
-      this.res = r
+      res = r
     })
+    this.res = res
     this.failCbs = []
     this.hasFailed = false
 
