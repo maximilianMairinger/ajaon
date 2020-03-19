@@ -91,8 +91,21 @@ type SessKeyKey = {sessKeyKeyForStorage: string, sessKeyKeyForApi: string}
 const commonLoginApiCalls = ["login", "auth", "session"]
 const baseUrl = getBaseUrl()
 
-export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | SessKeyKey, storage: object = localStorage, verbose: boolean = true) {
+
+
+
+
+
+
+
+
+
+
+
+
+export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | SessKeyKey, ensureDelivery: boolean = false, storage: object = localStorage, verbose: boolean = true) {
   const defaultVervose = verbose
+  const defualtEnsureDelivery = ensureDelivery
   let warn = constructConsoleWarnVerbose(verbose)
 
   if (!endsWithSlash(apiUrl)) apiUrl += "/"
@@ -105,8 +118,8 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
   }
 
   const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false
-  function post<Res = GenericObject>(url: string | string[], body: object | string = {}, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, verbose: boolean = defaultVervose) {
-    return new AjaonPromise<Res, string>((res, fail) => {
+  function post<Res = GenericObject>(url: string | string[], body: object | string = {}, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, ensureDelivery: boolean = defualtEnsureDelivery, verbose: boolean = defaultVervose) {
+    let ret = new AjaonPromise<Res, string>((res, fail) => {
       headers = headers instanceof Headers ? headers : new Headers(headers)
 
 
@@ -185,12 +198,26 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
         else fail("Aborted")
       }
     })
+
+
+    if (ensureDelivery) {
+      ret.fail(() => {
+        if (!navigator.onLine) {
+          window.addEventListener("online", () => {
+            post(url, body, headers, false, verbose)
+          }, {once: true})
+        }
+      })
+    }
+
+
+    return ret
   }
 
   
 
-  async function get<Res>(url: string | string[], verbose: boolean = defaultVervose) {
-    return new AjaonPromise<Res, string>((res, fail) => {
+  async function get<Res>(url: string | string[], ensureDelivery: boolean = defualtEnsureDelivery, verbose: boolean = defaultVervose) {
+    let ret = new AjaonPromise<Res, string>((res, fail) => {
       let controller = new AbortController();
       let signal = controller.signal;
 
@@ -211,6 +238,18 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
         else fail("Aborted")
       }
     })
+
+    if (ensureDelivery) {
+      ret.fail(() => {
+        if (!navigator.onLine) {
+          window.addEventListener("online", () => {
+            get(url, false, verbose)
+          }, {once: true})
+        }
+      })
+    }
+
+    return ret
   }
 
   function assembleUrl(url: string[] | string) {
