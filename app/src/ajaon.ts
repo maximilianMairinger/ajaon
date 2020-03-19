@@ -129,7 +129,7 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
     apiUrl = "https://" + apiUrl
   }
 
-  const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false
+  const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : {sessKeyKeyForStorage: "sessKey", sessKeyKeyForApi: "sessKey"}
   function post<Res = GenericObject>(url: string | string[], body: object | string = {}, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, ensureDelivery: boolean = defualtEnsureDelivery, verbose: boolean = defaultVervose) {
     let ret = new AjaonPromise<Res, string>((res, fail) => {
       headers = headers instanceof Headers ? headers : new Headers(headers)
@@ -213,6 +213,7 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
 
 
     if (ensureDelivery) {
+      delete body[sess.sessKeyKeyForApi]
       recall(ret, post, arguments)
     }
 
