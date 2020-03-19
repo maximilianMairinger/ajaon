@@ -11,15 +11,16 @@ export class AjaonPromise<Res = any, Error = string> extends Promise<Res> {
 
   public abort: (msg?: string) => void
 
+  private res: (res: Res) => void
+
   constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => (() => void)) {
-    let res: (res: Res) => void
     super((r) => {
-      res = r
+      this.res = r
     })
     this.failCbs = []
     this.hasFailed = false
 
-    this.abort = f(res, (msg: Error) => {
+    this.abort = f(this.res, (msg: Error) => {
       this.hasFailed = true
       this.failiourMsg = msg
       this.failCbs.forEach((cb) => {
@@ -201,13 +202,7 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
 
 
     if (ensureDelivery) {
-      ret.fail(() => {
-        if (!navigator.onLine) {
-          window.addEventListener("online", () => {
-            post(url, body, headers, false, verbose)
-          }, {once: true})
-        }
-      })
+      recall(ret, post, arguments)
     }
 
 
@@ -216,7 +211,7 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
 
   
 
-  async function get<Res>(url: string | string[], ensureDelivery: boolean = defualtEnsureDelivery, verbose: boolean = defaultVervose) {
+  function get<Res>(url: string | string[], ensureDelivery: boolean = defualtEnsureDelivery, verbose: boolean = defaultVervose): AjaonPromise<Res, string> {
     let ret = new AjaonPromise<Res, string>((res, fail) => {
       let controller = new AbortController();
       let signal = controller.signal;
@@ -240,16 +235,21 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
     })
 
     if (ensureDelivery) {
-      ret.fail(() => {
-        if (!navigator.onLine) {
-          window.addEventListener("online", () => {
-            get(url, false, verbose)
-          }, {once: true})
-        }
-      })
+      recall(ret, get, arguments)
     }
 
     return ret
+  }
+
+  function recall(ret: AjaonPromise, func: (...a: any[]) => AjaonPromise, args: IArguments) {
+    ret.fail(() => {
+      if (!navigator.onLine) {
+        window.addEventListener("online", () => {
+          let req = func(...args)
+          if ((ret as any).failCbs.empty) req.then((ret as any).res)
+        }, {once: true})
+      }
+    })
   }
 
   function assembleUrl(url: string[] | string) {
