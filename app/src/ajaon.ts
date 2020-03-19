@@ -107,6 +107,15 @@ const baseUrl = getBaseUrl()
 
 
 export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | SessKeyKey, ensureDelivery: boolean = false, storage: object = localStorage, verbose: boolean = true) {
+  let recalls: Function[] = []
+  window.addEventListener("online", async () => {
+    for (let f of recalls) {
+      await f()
+    }
+    recalls.length = 0
+  })
+
+
   const defaultVervose = verbose
   const defualtEnsureDelivery = ensureDelivery
   let warn = constructConsoleWarnVerbose(verbose)
@@ -246,10 +255,10 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
   function recall(ret: AjaonPromise, func: (...a: any[]) => AjaonPromise, args: IArguments) {
     ret.fail(() => {
       if (!navigator.onLine) {
-        window.addEventListener("online", () => {
+        recalls.push(() => {
           let req = func(...args)
           if ((ret as any).failCbs.length === 1) req.then((ret as any).res)
-        }, {once: true})
+        })
       }
     })
   }
