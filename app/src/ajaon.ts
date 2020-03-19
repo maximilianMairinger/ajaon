@@ -248,7 +248,7 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
       if (!navigator.onLine) {
         window.addEventListener("online", () => {
           let req = func(...args)
-          if ((ret as any).failCbs.empty) req.then((ret as any).res)
+          if ((ret as any).failCbs.length === 1) req.then((ret as any).res)
         }, {once: true})
       }
     })
