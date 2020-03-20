@@ -3,15 +3,63 @@ import getBaseUrl from "get-base-url"
 
 type Error = string
 
-let recalls: Function[] = []
-  window.addEventListener("online", async () => {
-    for (let f of recalls) {
-      await f()
-    }
-    recalls.length = 0
-  })
 
-export class AjaonPromise<Res = GenericObject> extends Promise<Res> {
+let recalls: (() => Promise<void>)[] = []
+window.addEventListener("online", async () => {
+  for (let f of recalls) {
+    await f()
+  }
+  recalls.length = 0
+})
+
+let justCalled = false
+
+class ThenPromise<Res> extends Promise<Res> {
+  constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => void, protected root?: ThenPromise<any>) {
+    super(f)
+
+
+    let resRoot: Function
+    if (this.root) {
+      this.root.thenCalls.push(new Promise(r => resRoot = r))
+      
+      if (justCalled === false) {
+        justCalled = true
+        super.then(async () => {
+          await Promise.all(this.thenCalls)
+          resRoot()
+        })
+        justCalled = false
+      }
+    }
+    
+    
+  }
+
+  protected thenCalls: Promise<void>[] = []
+
+  //@ts-ignore
+  then<T>(f: (res: Res) => (T | Promise<T>)) {
+    
+
+    let resThis: Function
+    let p = new ThenPromise<T>(r => resThis = r, this)
+
+
+
+    super.then(async (ww) => {
+      await f(ww)
+      resThis()
+    })
+
+
+
+
+    return p
+  }
+}
+
+export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
   public readonly hasFailed: boolean
   public readonly failiourMsg: Error
   private failCbs: ((err: Error) => void)[]
@@ -26,6 +74,9 @@ export class AjaonPromise<Res = GenericObject> extends Promise<Res> {
     super((r) => {
       res = r
     })
+
+    this.root = this
+
     this.f = f
     this.resThis = res
     this.failCbs = []
@@ -44,14 +95,17 @@ export class AjaonPromise<Res = GenericObject> extends Promise<Res> {
     })
   }
 
+  
+
   fail(f: (err: Error) => void) {
     if (this.hasFailed) f(this.failiourMsg)
     else this.failCbs.push(f)
   }
 
 
+
   private defaultLengthOfFailCb: number
- 
+
   recall() {
     let recallAjaonPromise = new AjaonPromise<Res>((recallRes, recallFail) => {
       if (!navigator.onLine) {
@@ -66,13 +120,14 @@ export class AjaonPromise<Res = GenericObject> extends Promise<Res> {
           if (abort) return
 
 
-          return new Promise((rrr) => {
+          return new Promise<any>((recallPromiseRes) => {
             abortFunc = this.f((res) => {
+              
               
 
               if (this.failCbs.length === this.defaultLengthOfFailCb) this.resThis(res)
-              rrr()
               recallRes(res)
+              Promise.all(recallAjaonPromise.thenCalls).then(recallPromiseRes)
             }, recallFail)
 
             

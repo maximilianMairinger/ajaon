@@ -1,4 +1,5 @@
 import ajaon from "./../../app/src/ajaon"
+import delay from "delay"
 
 
 let ajax = ajaon(undefined, undefined);
@@ -9,32 +10,43 @@ let ajax = ajaon(undefined, undefined);
   window.addEventListener("offline", async () => {
     console.log("start")
     let req1 = ajax.post("log", {ok: "log1"})
+    let req2 = ajax.post("log", {ok: "log2"})
     req1.fail(async () => {
-      console.log("failed - added recall")
+      console.log("failed req1 - added recall")
 
 
 
-      let prom = req1.recall()
+      let prom1 = req1.recall()
 
-      
+      prom1.then(async () => {
+        await delay(1000)
 
-      setTimeout(() => {
-        debugger
-        prom.abort("Sad")
-      }, 500)
-
-      prom.fail((e) => {
-        console.log("fail", e)
+        console.log("1000")
       })
-
-      console.log(await prom, "yea")
 
     })
 
-    let res = await Promise.all([req1])
   
-    console.log(res)
+    req2.fail(() => {
+      console.log("failed req2 - added recall")
+
+
+
+      let prom2 = req2.recall()
+
+      prom2.then(async () => {
+        await delay(1000)
+
+        console.log("1000 - 2")
+      })
+
+
+    })
+
+
+
   })
+
 
   
 })()
