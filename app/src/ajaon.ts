@@ -5,11 +5,15 @@ type Error = string
 
 
 let recalls: (() => Promise<void>)[] = []
+let recallLoopInjectIndex = 0
+let currentlyInRecallLoop = false
 window.addEventListener("online", async () => {
-  for (let f of recalls) {
-    await f()
+  currentlyInRecallLoop = true
+  recallLoopInjectIndex = 0
+  for (; recallLoopInjectIndex < recalls.length; recallLoopInjectIndex++) {
+    await recalls[recallLoopInjectIndex]()
   }
-  recalls.length = 0
+  currentlyInRecallLoop = !!(recalls.length = recallLoopInjectIndex = 0) // :P
 })
 
 let justCalled = false
@@ -22,7 +26,7 @@ class ThenPromise<Res> extends Promise<Res> {
     let resRoot: Function
     if (this.root) {
       this.root.thenCalls.push(new Promise(r => resRoot = r))
-      
+
       if (justCalled === false) {
         justCalled = true
         super.then(async () => {
@@ -108,14 +112,14 @@ export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
 
   recall() {
     let recallAjaonPromise = new AjaonPromise<Res>((recallRes, recallFail) => {
-      if (!navigator.onLine) {
-  
+      if (!navigator.onLine || currentlyInRecallLoop) {
 
         let hasStarted = false
         let abort = false
         let abortFunc: () => void
         
-        recalls.push(() => {
+        recallLoopInjectIndex++
+        recalls.splice(recallLoopInjectIndex, 0, () => {
           hasStarted = true
           if (abort) return
 
@@ -136,6 +140,7 @@ export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
           })
           
         })
+        if (currentlyInRecallLoop) recallLoopInjectIndex--
 
         return (msg?: Error) => {
           if (hasStarted) {

@@ -21,6 +21,8 @@ let ajax = ajaon(undefined, undefined);
       prom1.then(async () => {
         await delay(1000)
 
+        req1.recall().then(() => delay(2000))
+
         console.log("1000")
       })
 
