@@ -336,7 +336,7 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
     if (ensureDelivery) {
       let pb = JSON.parse(body as string)
       delete pb[sess.sessKeyKeyForApi]
-      JSON.stringify(pb)
+      body = JSON.stringify(pb)
       //@ts-ignore
       ret.defaultLengthOfFailCb++
       ret.fail(() => {
