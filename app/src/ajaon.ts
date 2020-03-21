@@ -76,7 +76,7 @@ class ThenPromise<Res> extends Promise<Res> {
 }
 
 export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
-  public readonly hasFailed: boolean
+  public readonly failed: boolean
   public readonly failiourMsg: Error
   private failCbs: ((err: Error) => void)[]
 
@@ -96,13 +96,13 @@ export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
     this.f = f
     this.resThis = res
     this.failCbs = []
-    this.hasFailed = false
+    this.failed = false
     this.defaultLengthOfFailCb = 0
 
 
     this.abort = this.f(this.resThis, (msg: Error) => {
       //@ts-ignore
-      this.hasFailed = true
+      this.failed = true
       //@ts-ignore
       this.failiourMsg = msg
       this.failCbs.forEach((cb) => {
@@ -114,7 +114,7 @@ export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
   
 
   fail(f: (err: Error) => void) {
-    if (this.hasFailed) f(this.failiourMsg)
+    if (this.failed) f(this.failiourMsg)
     else this.failCbs.push(f)
   }
 
@@ -139,6 +139,8 @@ export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
           return new Promise<any>((recallPromiseRes) => {
             abortFunc = this.f((res) => {
               
+              //@ts-ignore
+              this.failed = false
               
 
               if (this.failCbs.length === this.defaultLengthOfFailCb) this.resThis(res)
