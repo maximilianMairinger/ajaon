@@ -1,6 +1,6 @@
 {
   "name": "ajaon",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Asynchron js and json. A tiny, fetch based http client for the web.",
   "main": "app/dist/ajaon.js",
   "types": "app/dist/ajaon.d.ts",
