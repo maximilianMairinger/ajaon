@@ -83,9 +83,9 @@ export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
   public abort: (msg?: Error) => void
 
   private resThis: (res: Res) => void
-  private f: (res: (res: Res) => void, fail: (err: Error) => void) => ((err?: Error) => void)
+  private f: (res: (res: Res) => void, fail: (err: Error) => void, recall: boolean) => ((err?: Error) => void)
 
-  constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => (() => void)) {
+  constructor(f: (res: (res: Res) => void, fail: (err: Error) => void, recall: boolean) => (() => void)) {
     let res: (res: Res) => void
     super((r) => {
       res = r
@@ -108,7 +108,7 @@ export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
       this.failCbs.forEach((cb) => {
         cb(msg)
       })
-    })
+    }, false)
   }
 
   
@@ -146,7 +146,7 @@ export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
               if (this.failCbs.length === this.defaultLengthOfFailCb) this.resThis(res)
               recallRes(res)
               Promise.all(recallAjaonPromise.thenCalls).then(recallPromiseRes)
-            }, recallFail)
+            }, recallFail, true)
 
             
 
@@ -169,7 +169,7 @@ export class AjaonPromise<Res = GenericObject> extends ThenPromise<Res> {
 
       }
       else {
-        return this.f(recallRes, recallFail)
+        return this.f(recallRes, recallFail, true)
       }
       
     })
@@ -265,9 +265,9 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
     apiUrl = "https://" + apiUrl
   }
 
-  const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false
+  const sess: SessKeyKey = !recall ? sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false : false
   function post<Res = GenericObject>(url: string | string[], body: object | string = {}, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, ensureDelivery: boolean = defualtEnsureDelivery, verbose: boolean = defaultVervose) {
-    let ret = new AjaonPromise<Res>((res, fail) => {
+    let ret = new AjaonPromise<Res>((res, fail, recall) => {
       headers = headers instanceof Headers ? headers : new Headers(headers)
 
 
@@ -348,9 +348,6 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
     })
 
     if (ensureDelivery) {
-      let pb = JSON.parse(body as string)
-      delete pb[sess.sessKeyKeyForApi]
-      body = JSON.stringify(pb)
       //@ts-ignore
       ret.defaultLengthOfFailCb++
       ret.fail(() => {
