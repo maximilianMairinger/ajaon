@@ -265,9 +265,9 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
     apiUrl = "https://" + apiUrl
   }
 
-  const sess: SessKeyKey = !recall ? sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false : false
+  const sess: SessKeyKey = sessKeyKey !== undefined ? typeof sessKeyKey === "string" ? {sessKeyKeyForStorage: sessKeyKey, sessKeyKeyForApi: sessKeyKey} : clone(sessKeyKey) : false
   function post<Res = GenericObject>(url: string | string[], body: object | string = {}, headers: HeadersInit | Headers = {'Content-Type': 'application/json'}, ensureDelivery: boolean = defualtEnsureDelivery, verbose: boolean = defaultVervose) {
-    let ret = new AjaonPromise<Res>((res, fail, recall) => {
+    let ret = new AjaonPromise<Res>((res, fail, recalling) => {
       headers = headers instanceof Headers ? headers : new Headers(headers)
 
 
@@ -276,22 +276,27 @@ export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | Se
       const assembledUrl = assembleUrl(url)
 
       body = typeof body === "string" ? JSON.parse(body) : body
+
       if (sess) {
-        if (body[sess.sessKeyKeyForApi] !== undefined) warn("Session key property \"" + sess.sessKeyKeyForApi + "\" in post body defined as \"" + body[sess.sessKeyKeyForApi] + "\". The sesskey (saved as \"" + sess.sessKeyKeyForStorage + "\" in storage) will not be ijected into the payload.");
-        else if (storage[sess.sessKeyKeyForStorage] !== undefined) body[sess.sessKeyKeyForApi] = storage[sess.sessKeyKeyForStorage]
-        else {
-          let isCommon = false
-          const lowerCaseUrl = assembledUrl.toLocaleLowerCase()
-          for (let i = 0; i < commonLoginApiCalls.length; i++) {
-            if (lowerCaseUrl.includes(commonLoginApiCalls[i])) {
-              isCommon = true
+        if (!recalling) {
+          if (body[sess.sessKeyKeyForApi] !== undefined) warn("Session key property \"" + sess.sessKeyKeyForApi + "\" in post body defined as \"" + body[sess.sessKeyKeyForApi] + "\". The sesskey (saved as \"" + sess.sessKeyKeyForStorage + "\" in storage) will not be ijected into the payload.");
+          else if (storage[sess.sessKeyKeyForStorage] !== undefined) body[sess.sessKeyKeyForApi] = storage[sess.sessKeyKeyForStorage]
+          else {
+            let isCommon = false
+            const lowerCaseUrl = assembledUrl.toLocaleLowerCase()
+            for (let i = 0; i < commonLoginApiCalls.length; i++) {
+              if (lowerCaseUrl.includes(commonLoginApiCalls[i])) {
+                isCommon = true
+              }
+            }
+  
+            if (!isCommon) {
+              error("No sessionKey found on the client under " + sess.sessKeyKeyForStorage + ".")
             }
           }
-
-          if (!isCommon) {
-            error("No sessionKey found on the client under " + sess.sessKeyKeyForStorage + ".")
-          }
         }
+        else if (body[sess.sessKeyKeyForApi] === undefined && storage[sess.sessKeyKeyForStorage] !== undefined) body[sess.sessKeyKeyForApi] = storage[sess.sessKeyKeyForStorage]
+        
       }
 
       body = JSON.stringify(body);
