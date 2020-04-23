@@ -1,5 +1,6 @@
 import clone from "tiny-clone"
 import getBaseUrl from "get-base-url"
+import { isBrowser } from "browser-or-node"
 
 type Error = string
 
@@ -7,9 +8,8 @@ type Error = string
 let recalls: (() => Promise<void>)[] = []
 let recallLoopInjectIndex = 0
 
-const inBrowser = typeof window !== undefined
 
-if (inBrowser) {
+if (isBrowser) {
   window.addEventListener("online", () => {
     recall.process = new Promise(async (resProcess) => {
       recall.ongoing = true
