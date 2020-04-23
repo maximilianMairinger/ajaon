@@ -6,18 +6,24 @@ type Error = string
 
 let recalls: (() => Promise<void>)[] = []
 let recallLoopInjectIndex = 0
-window.addEventListener("online", () => {
-  recall.process = new Promise(async (resProcess) => {
-    recall.ongoing = true
-    recallLoopInjectIndex = 0
-    for (; recallLoopInjectIndex < recalls.length; recallLoopInjectIndex++) {
-      await recalls[recallLoopInjectIndex]()
-    }
-    recall.ongoing = !!(recalls.length = recallLoopInjectIndex = 0) // :P
-    resProcess()
+
+const inBrowser = typeof window !== undefined
+
+if (inBrowser) {
+  window.addEventListener("online", () => {
+    recall.process = new Promise(async (resProcess) => {
+      recall.ongoing = true
+      recallLoopInjectIndex = 0
+      for (; recallLoopInjectIndex < recalls.length; recallLoopInjectIndex++) {
+        await recalls[recallLoopInjectIndex]()
+      }
+      recall.ongoing = !!(recalls.length = recallLoopInjectIndex = 0) // :P
+      resProcess()
+    })
+    
   })
-  
-})
+}
+
 
 
 export const recall: {
