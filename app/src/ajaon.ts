@@ -253,8 +253,9 @@ type SessKeyKey = {sessKeyKeyForStorage: string, sessKeyKeyForApi: string}
 
 const commonLoginApiCalls = ["login", "auth", "session"]
 const baseUrl = getBaseUrl()
+const defaultStorage = isBrowser ? localStorage : {}
 
-export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | SessKeyKey, ensureDelivery: boolean = false, storage: object = localStorage, verbose: boolean = true) {
+export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | SessKeyKey, ensureDelivery: boolean = false, storage: object = defaultStorage, verbose: boolean = true) {
   
 
 
