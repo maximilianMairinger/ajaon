@@ -239,20 +239,20 @@ const constructConsoleWarnVerbose = constructConsoleType("warn")
 type GenericObject = {[key: string]: any} & {[key: number]: any}
 type SessKeyKey = {sessKeyKeyForStorage: string, sessKeyKeyForApi: string}
 
+
+
+
+
+
+
+
+
+
+
+
+
 const commonLoginApiCalls = ["login", "auth", "session"]
 const baseUrl = getBaseUrl()
-
-
-
-
-
-
-
-
-
-
-
-
 
 export default function ajaon(apiUrl: string = baseUrl, sessKeyKey?: string | SessKeyKey, ensureDelivery: boolean = false, storage: object = localStorage, verbose: boolean = true) {
   
