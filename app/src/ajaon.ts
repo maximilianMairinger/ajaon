@@ -36,7 +36,7 @@ export const recall: {
 
 let justCalled = false
 
-class ThenPromise<Res> extends Promise<Res> {
+export class ThenPromise<Res> extends Promise<Res> {
   constructor(f: (res: (res: Res) => void, fail: (err: Error) => void) => void, protected root?: ThenPromise<any>) {
     super(f)
 
