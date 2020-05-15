@@ -52,7 +52,7 @@
   },
   "dependencies": {
     "browser-or-node": "^1.2.1",
-    "get-base-url": "^1.0.2",
+    "get-base-url": "^2.0.0",
     "tiny-clone": "^1.0.0"
   }
 }
